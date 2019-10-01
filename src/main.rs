@@ -5,7 +5,7 @@ extern crate walkdir;
 
 use self::display::draw_it;
 use clap::{App, AppSettings, Arg};
-use utils::{find_big_ones, get_dir_tree, simplify_dir_names, sort, trim_deep_ones};
+use utils::{find_big_ones, get_dir_tree, simplify_dir_names, sort, trim_deep_ones, compare_tuple2};
 
 mod display;
 mod utils;
@@ -91,12 +91,15 @@ fn main() {
             Some(d) => trim_deep_ones(sorted_data, d, &simplified_dirs),
         }
     };
+    let mut inv = biggest_ones.clone();
+    inv.sort_by(compare_tuple2);
+
     draw_it(
         permissions,
         !use_full_path,
         depth,
         simplified_dirs,
-        biggest_ones,
+        inv,
     );
 }
 

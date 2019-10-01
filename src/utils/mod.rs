@@ -119,6 +119,15 @@ pub fn sort(data: HashMap<String, u64>) -> Vec<(String, u64)> {
     new_l
 }
 
+pub fn compare_tuple2(a: &(String, u64), b: &(String, u64)) -> Ordering {
+    let result = a.1.cmp(&b.1);
+    if result == Ordering::Equal {
+        b.0.cmp(&a.0)
+    } else {
+        result
+    }
+}
+
 pub fn find_big_ones(new_l: Vec<(String, u64)>, max_to_show: usize) -> Vec<(String, u64)> {
     if max_to_show > 0 && new_l.len() > max_to_show {
         new_l[0..max_to_show].to_vec()
