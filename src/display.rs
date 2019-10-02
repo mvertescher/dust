@@ -80,7 +80,7 @@ fn display_node(
                         k,
                         found,
                         to_display,
-                        num_siblings!=start_sib-1,
+                        num_siblings==0,
                         short_paths,
                         new_depth,
                         &*(new_indent.to_string() + get_tree_chars(num_siblings!=start_sib-1, has_children)),
@@ -95,8 +95,8 @@ fn display_node(
 
 fn clean_indentation_string(s: String) -> String {
     let mut is :String = s;
-    is = is.replace("┬─┴", "  ");
-    is = is.replace("┬──", "  ");
+    is = is.replace("┌─┴", "  ");
+    is = is.replace("┌──", "  ");
     is = is.replace("├──", "│ ");
     is = is.replace("├─┴", "│ ");
     is = is.replace("─┴", " ");
@@ -134,9 +134,9 @@ fn has_children(
 fn get_tree_chars(has_smaller_siblings: bool, has_children: bool) -> &'static str {
     if !has_smaller_siblings {
         if has_children {
-            "┬─┴"
+            "┌─┴"
         } else {
-            "┬──"
+            "┌──"
         }
     } else if has_children {
         "├─┴"
