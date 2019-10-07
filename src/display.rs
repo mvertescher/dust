@@ -129,27 +129,14 @@ fn clean_indentation_string(s: &str) -> String {
     is
 }
 
-fn print_this_node(name: &str, size: u64, is_biggest: bool, short_paths: bool, indentation: &str) {
-    let pretty_size = format!("{:>5}", human_readable_number(size),);
-    println!(
-        "{}",
-        format_string(
-            name,
-            is_biggest,
-            short_paths,
-            pretty_size.as_ref(),
-            indentation
-        )
-    )
-}
-// idea: squash these 2
-pub fn format_string(
+pub fn print_this_node(
     dir_name: &str,
+    size: u64,
     is_biggest: bool,
     short_paths: bool,
-    size: &str,
     indentation: &str,
 ) -> String {
+    let pretty_size = format!("{:>5}", human_readable_number(size));
     let printable_name = {
         if short_paths {
             dir_name.split('/').last().unwrap_or(dir_name)
@@ -160,9 +147,9 @@ pub fn format_string(
     format!(
         "{} {} {}",
         if is_biggest {
-            Fixed(196).paint(size)
+            Fixed(196).paint(pretty_size)
         } else {
-            Style::new().paint(size)
+            Style::new().paint(pretty_size)
         },
         indentation,
         printable_name,

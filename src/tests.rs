@@ -3,7 +3,7 @@ extern crate tempfile;
 use self::tempfile::Builder;
 use self::tempfile::TempDir;
 use super::*;
-use display::format_string;
+use display::print_this_node;
 use std::fs::File;
 use std::io::Write;
 use std::panic;
@@ -21,6 +21,8 @@ pub fn test_main() {
 
 #[test]
 pub fn test_main_long_paths() {
+    let s = main_output(false);
+    println!("{:?}", s);
     assert_cli::Assert::main_binary()
         .with_args(&["-p", "src/test_dir"])
         .stdout()
@@ -30,6 +32,11 @@ pub fn test_main_long_paths() {
 
 #[test]
 pub fn test_main_multi_arg() {
+    let s = assert_cli::Assert::main_binary()
+        .with_args(&["src/test_dir/many/", "src/test_dir/", "src/test_dir"])
+        .stdout();
+    println!("{:?}", s);
+
     assert_cli::Assert::main_binary()
         .with_args(&["src/test_dir/many/", "src/test_dir/", "src/test_dir"])
         .stdout()
@@ -44,20 +51,20 @@ fn main_output(short_paths: bool) -> String {
 {}
 {}
 {}",
-        format_string("src/test_dir", true, short_paths, " 4.0K", "─┬"),
-        format_string("src/test_dir/many", true, short_paths, " 4.0K", " └─┬",),
-        format_string(
+        print_this_node("src/test_dir", 4*1024, true, short_paths, "─┬"),
+        print_this_node("src/test_dir/many", 4*1024,  true, short_paths, " └─┬",),
+        print_this_node(
             "src/test_dir/many/hello_file",
+            4*1024,
             true,
             short_paths,
-            " 4.0K",
             "   ├──",
         ),
-        format_string(
+        print_this_node(
             "src/test_dir/many/a_file",
+            0,
             false,
             short_paths,
-            "   0B",
             "   └──",
         ),
     )
@@ -70,20 +77,20 @@ fn main_output(short_paths: bool) -> String {
 {}
 {}
 {}",
-        format_string("src/test_dir", true, short_paths, "  12K", "─┬"),
-        format_string("src/test_dir/many", true, short_paths, " 8.0K", " └─┬",),
-        format_string(
+        print_this_node("src/test_dir", 12*1024, true, short_paths, "─┬"),
+        print_this_node("src/test_dir/many", 8*1024,true, short_paths, " └─┬",),
+        print_this_node(
             "src/test_dir/many/hello_file",
+            4*1024,
             true,
             short_paths,
-            " 4.0K",
             "   ├──",
         ),
-        format_string(
+        print_this_node(
             "src/test_dir/many/a_file",
+            0,
             false,
             short_paths,
-            "   0B",
             "   └──",
         ),
     )
@@ -93,11 +100,11 @@ fn main_output(short_paths: bool) -> String {
 pub fn test_apparent_size() {
     let r = format!(
         "{}",
-        format_string(
+        print_this_node(
             "src/test_dir/many/hello_file",
+            6,
             true,
             true,
-            "   6B",
             "   ├──",
         ),
     );
@@ -176,9 +183,9 @@ fn soft_sym_link_output(dir: &str, file_path: &str, link_name: &str) -> String {
         "{}
 {}
 {}",
-        format_string(dir, true, true, " 8.0K", "─┬"),
-        format_string(file_path, true, true, " 4.0K", " ├──",),
-        format_string(link_name, false, true, " 4.0K", " └──",),
+        print_this_node(dir, 8*1024, true, true, "─┬"),
+        print_this_node(file_path,4*1024,  true, true, " ├──",),
+        print_this_node(link_name, 4*1024,false, true,  " └──",),
     )
 }
 
@@ -188,9 +195,9 @@ fn soft_sym_link_output(dir: &str, file_path: &str, link_name: &str) -> String {
         "{}
 {}
 {}",
-        format_string(dir, true, true, " 8.0K", "─┬"),
-        format_string(file_path, true, true, " 4.0K", " ├──",),
-        format_string(link_name, false, true, "   0B", " └──",),
+        print_this_node(dir, 8*1024, true, true, "─┬"),
+        print_this_node(file_path, 4*1024, true, true, " ├──",),
+        print_this_node(link_name,  0, false, true,  " └──",),
     )
 }
 
@@ -236,14 +243,14 @@ fn hard_link_output(dir_s: &str, file_path_s: &str, link_name_s: &str) -> (Strin
     let r = format!(
         "{}
 {}",
-        format_string(dir_s, true, true, " 4.0K", "─┬"),
-        format_string(file_path_s, true, true, " 4.0K", " └──")
+        print_this_node(dir_s, 4*1024, true, true,  "─┬"),
+        print_this_node(file_path_s, 4*1024, true, true, " └──")
     );
     let r2 = format!(
         "{}
 {}",
-        format_string(dir_s, true, true, " 4.0K", "─┬"),
-        format_string(link_name_s, true, true, " 4.0K", " └──")
+        print_this_node(dir_s,  4*1024,true, true, "─┬"),
+        print_this_node(link_name_s,  4*1024,true, true, " └──")
     );
     (r, r2)
 }
@@ -253,14 +260,14 @@ fn hard_link_output(dir_s: &str, file_path_s: &str, link_name_s: &str) -> (Strin
     let r = format!(
         "{}
 {}",
-        format_string(dir_s, true, true, " 8.0K", "─┬"),
-        format_string(file_path_s, true, true, " 4.0K", " └──")
+        print_this_node(dir_s,  8*1024,true, true, "─┬"),
+        print_this_node(file_path_s,  4*1024,true, true, " └──")
     );
     let r2 = format!(
         "{}
 {}",
-        format_string(dir_s, true, true, " 8.0K", "─┬"),
-        format_string(link_name_s, true, true, " 4.0K", " └──")
+        print_this_node(dir_s,  8*1024,true, true, "─┬"),
+        print_this_node(link_name_s,  4*1024,true, true, " └──")
     );
     (r, r2)
 }
@@ -293,8 +300,8 @@ fn recursive_sym_link_output(dir: &str, link_name: &str) -> String {
     format!(
         "{}
 {}",
-        format_string(dir, true, true, " 4.0K", "─┬"),
-        format_string(link_name, true, true, " 4.0K", " └──",),
+        print_this_node(dir, 4*1024, true, true, "─┬"),
+        print_this_node(link_name, 4*1024, true, true, " └──",),
     )
 }
 #[cfg(target_os = "linux")]
@@ -302,7 +309,7 @@ fn recursive_sym_link_output(dir: &str, link_name: &str) -> String {
     format!(
         "{}
 {}",
-        format_string(dir, true, true, " 4.0K", "─┬"),
-        format_string(link_name, true, true, "   0B", " └──",),
+        print_this_node(dir, 4*1024, true, true, "─┬"),
+        print_this_node(link_name, 0, true, true, " └──",),
     )
 }
