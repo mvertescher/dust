@@ -1,4 +1,4 @@
-use walkdir::DirEntry;
+use ignore::DirEntry;
 
 fn get_block_size() -> u64 {
     // All os specific implementations of MetatdataExt seem to define a block as 512 bytes

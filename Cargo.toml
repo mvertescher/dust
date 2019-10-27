@@ -22,8 +22,8 @@ path = "src/main.rs"
 
 [dependencies]
 ansi_term = "=0.11"
-clap = "=2.33"
 assert_cli = "=0.5"
+clap = "=2.33"
+ignore = "=0.4"
 tempfile = "=3"
 walkdir = "=2"
-

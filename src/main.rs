@@ -89,7 +89,8 @@ fn main() {
     let use_full_path = options.is_present("display_full_paths");
 
     let simplified_dirs = simplify_dir_names(target_dirs);
-    let (permissions, nodes) = get_dir_tree(&simplified_dirs, use_apparent_size);
+    // let (permissions, nodes) = get_dir_tree(&simplified_dirs, use_apparent_size);
+    let (permissions, nodes) = utils::get_dir_tree_parallel(&simplified_dirs, use_apparent_size);
     let sorted_data = sort(nodes);
     let biggest_ones = {
         match depth {

@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use walkdir::WalkDir;
+use ignore::Walk;
 
 mod platform;
 use self::platform::*;
@@ -78,7 +78,7 @@ fn examine_dir(
     data: &mut HashMap<String, u64>,
     file_count_no_permission: &mut u64,
 ) {
-    for entry in WalkDir::new(top_dir) {
+    for entry in Walk::new(top_dir) {
         if let Ok(e) = entry {
             let maybe_size_and_inode = get_metadata(&e, apparent_size);
 
@@ -113,6 +113,82 @@ fn examine_dir(
     }
 }
 
+use ignore::{WalkBuilder, WalkState};
+use std::sync::Arc;
+use std::sync::Mutex;
+
+pub fn get_dir_tree_parallel (
+    top_level_names: &HashSet<String>,
+    apparent_size: bool,
+) -> (bool, HashMap<String, u64>) {
+    let mut permissions = 0;
+    let mut inodes: HashSet<(u64, u64)> = HashSet::new();
+    let mut data: HashMap<String, u64> = HashMap::new();
+
+    let inodes = Arc::new(Mutex::new(inodes));
+    let permissions = Arc::new(Mutex::new(permissions));
+    let data = Arc::new(Mutex::new(data));
+
+    for top_dir in top_level_names.iter() {
+        let walker = WalkBuilder::new(top_dir).build_parallel();
+
+        let top_dir = Arc::new(top_dir.to_string());
+        walker.run(|| {
+            let inodes = Arc::clone(&inodes);
+            let data = Arc::clone(&data);
+            let permissions = Arc::clone(&permissions);
+            let top_dir = Arc::clone(&top_dir);
+
+            Box::new(move |entry| {
+                if let Ok(e) = entry {
+                    let maybe_size_and_inode = get_metadata(&e, apparent_size);
+
+                    match maybe_size_and_inode {
+                        Some((size, maybe_inode)) => {
+                            if !apparent_size {
+                                if let Some(inode_dev_pair) = maybe_inode {
+                                    let mut inodes = inodes.lock().unwrap();
+                                    if (*inodes).contains(&inode_dev_pair) {
+                                        return WalkState::Continue;
+                                    }
+                                    (*inodes).insert(inode_dev_pair);
+                                }
+                            }
+                            // This path and all its parent paths have their counter incremented
+                            let mut e_path = e.path().to_path_buf();
+                            loop {
+                                let path_name = e_path.to_string_lossy().to_string();
+                                let mut data = data.lock().unwrap();
+                                let s = (*data).entry(path_name.clone()).or_insert(0);
+                                *s += size;
+                                if path_name == *top_dir {
+                                    break;
+                                }
+                                assert!(path_name != "");
+                                e_path.pop();
+                            }
+                        }
+                        None => {
+                            let mut data = permissions.lock().unwrap();
+                            *data += 1;
+                        }
+                    }
+                } else {
+                    let mut data = permissions.lock().unwrap();
+                    *data += 1;
+                }
+
+                WalkState::Continue
+            })
+        });
+      }
+
+    let permissions = permissions.lock().unwrap();
+    let data = data.lock().unwrap();
+
+    (*permissions == 0, (*data).clone())
+}
+
 pub fn sort_by_size_first_name_second(a: &(String, u64), b: &(String, u64)) -> Ordering {
     let result = b.1.cmp(&a.1);
     if result == Ordering::Equal {
@@ -121,7 +197,6 @@ pub fn sort_by_size_first_name_second(a: &(String, u64), b: &(String, u64)) -> O
         result
     }
 }
-
 pub fn sort(data: HashMap<String, u64>) -> Vec<(String, u64)> {
     let mut new_l: Vec<(String, u64)> = data.iter().map(|(a, b)| (a.clone(), *b)).collect();
     new_l.sort_by(|a, b| sort_by_size_first_name_second(&a, &b));
